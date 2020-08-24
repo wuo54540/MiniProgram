@@ -1,0 +1,4 @@
+{extend name="public/layout"}
+{block name="main-css"}{/block}
+{block name='main-body'}{/block}
+{block name='main-js'}{/block}

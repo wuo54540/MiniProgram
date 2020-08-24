@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+	<link rel="stylesheet" href="/static/plugins/layui/css/layui.css">
+
+	<style type="text/css">
+		body{
+			padding: 5px;
+			background-color: #f2f2f2;
+		}
+		#page_heading{
+			color: #009688;
+			font-size: 18px;
+			line-height: initial;
+		}
+		#page_subheading{
+			color: grey;
+			font-size: 12px; 
+			line-height: initial;
+			margin-top: 5px;
+		}
+		.layui-table-tips-main,.layui-table-tips-c,.layui-table-grid-down{
+			display:none
+		}
+		.hide{
+			display: none;
+		}
+		.overflow-hide{
+			overflow:hidden;
+		}
+	</style>
+	{block name="main-css"}css补充部分{/block}
+</head>
+<body>
+	<div class="layui-col-md12">
+		<div class="layui-card">
+			<div class="layui-card-header" style="height: initial;padding:10px 15px">
+				<p id="page_heading">{$page_title}</p>
+			</div>
+			<div class="layui-card-body">
+				{block name="main-body"}主要内容部分{/block}
+			</div>
+		</div>
+	</div>	
+</body>
+<script type="text/javascript" src="/static/plugins/layui/layui.js"></script>
+<script type="text/javascript" src="/static/plugins/jquery-3.2.1.min.js"></script>
+<script type="text/javascript" src="/static/js/public/app.js"></script>
+{block name="main-js"}js补充部分{/block}
+</html>

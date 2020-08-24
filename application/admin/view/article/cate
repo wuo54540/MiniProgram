@@ -1,0 +1,7 @@
+{block name="main-css"}{/block}
+{block name='main-body'}
+
+{/block}
+{block name='main-js'}
+	<script></
+{/block}

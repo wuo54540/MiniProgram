@@ -1,0 +1,66 @@
+{block name="main-css"}
+
+{/block}
+{block name='main-body'}
+	<div class="main-body">
+		<div>
+			<form class="layui-form">
+				<div class="layui-form-item">
+					<div class="layui-inline">
+						<label class="layui-form-label">验证手机</label>
+						<div class="layui-input-inline">
+							<input type="tel" name="phone" lay-verify="required|phone" autocomplete="off" class="layui-input">
+						</div>
+					</div>
+				</div>
+			</form>
+		</div>
+		<div>
+			<table class="layui-table" id="data-table"></table>
+		</div>
+	</div>
+	<div class="hide" id="addOrEditTpl">
+		<form class="layui-form">
+			
+		</form>
+	</div>
+{/block}
+{block name='main-js'}
+	<script type="text/javascript">
+		const URL_HANDLE = 'Admin/Article/handle';
+		const ARTICLE_CATE = {:json_encode($articleCate)};
+	</script>
+	<script type="text/javascript">
+
+		const APP_INIT = {
+			layer:{},
+			elem:{
+				table:{
+					init:null
+				},
+				form:{
+					article:{
+						handle:null
+					},
+				},
+			},
+			init:function(){
+				let that = this;
+
+				layui.config({
+					base: '../exts/' //配置 layui 第三方扩展组件存放的基础目录
+				}).extend({
+					cropper: 'cropper/cropper' //以 regionSelect 组件为例，定义该组件模块名
+				}).use(['cropper'], function(){
+					let that.layer.cropper = layui.cropper,
+						that.layer.layer = layui.layer,
+						that.layer.table = layui.table,
+						that.layer.form = layui.form;
+				});
+			},
+
+
+		}
+
+	</script>
+{/block}

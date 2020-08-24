@@ -1,0 +1,334 @@
+{extend name="public/layout"}
+{block name="main-css"}
+	<style type="text/css">
+		#addOrEditTpl{
+			display: none;
+			padding:20px 25px 0px 0px;
+		}
+		#addOrEditContent{
+			min-height: 55	vh;
+		}
+
+	</style>
+{/block}
+{block name='main-body'}
+	<div class="main-body">
+		<div>
+			<button class="layui-btn layui-btn-primary" onclick="APP_INIT.addEvent()">添加文章</button>
+		</div>
+		<fieldset class="layui-elem-field" style="margin-top: 20px;">
+			<legend>搜索条件</legend>
+			<div>
+				<form class="layui-form" lay-filter="searchForm">
+					<div class="layui-form-item">
+						<div class="layui-inline">
+							<label class="layui-form-label">关键字</label>
+							<div class="layui-input-inline">
+								<input type="text" name="title" autocomplete="off" class="layui-input">
+							</div>
+						</div>
+						<div class="layui-inline">
+							<label class="layui-form-label">所属分类</label>
+							<div class="layui-input-inline">
+								<select name="cate_id" id="searchFormCate">
+									<option value="0">请选择</option>
+								</select>
+							</div>
+						</div>
+						<div class="layui-inline">
+							<button class="layui-btn layui-btn-primary" type="button" lay-submit="lay-submit" lay-filter="searchFormSubmit">搜索</button>
+							<button class="layui-btn" type="reset" onclick="APP_INIT.tableResetEvent()">重置</button>
+						</div>
+					</div>
+				</form>
+			</div>
+		</fieldset>
+		<div>
+			<table class="layui-table" id="data-table"></table>
+		</div>
+	</div>
+
+	<script type="text/html" id="tableHandleButton">
+		<button class="layui-btn layui-btn-xs layui-btn-primary" onclick="APP_INIT.editEvent(this)" data-id="{{ d.id }}">编辑</button>
+		<button class="layui-btn layui-btn-xs layui-btn-danger" onclick="APP_INIT.deleteEvent(this)" data-id="{{ d.id }}">删除</button>
+	</script>
+	<div id="addOrEditTpl">
+		<form class="layui-form" lay-filter='addOrEditForm'>
+			<div class="layui-form-item">
+				<label class="layui-form-label">文章标题</label>
+				<div class="layui-input-block">
+					<input type="text" name="title" lay-verify="title" autocomplete="off" placeholder="请输入标题" class="layui-input">
+				</div>
+			</div>
+			<div class="layui-form-item">
+				<div class="layui-inline">
+					<label class="layui-form-label">作者名称</label>
+					<div class="layui-input-inline">
+						<input type="text" name="anthor" class="layui-input">
+					</div>
+				</div>
+				<div class="layui-inline">
+					<label class="layui-form-label">排序</label>
+					<div class="layui-input-inline">
+						<input type="number" name="sort" class="layui-input" min="0" max="99">
+					</div>
+				</div>
+				<div class="layui-inline">
+					<label class="layui-form-label">点击量</label>
+					<div class="layui-input-inline">
+						<input type="number" name="click" value="0" class="layui-input">
+					</div>
+				</div>
+			</div>
+			<div class="layui-form-item">
+				<div class="layui-inline">
+					<label class="layui-form-label">所属分类</label>
+					<div class="layui-input-inline">
+						<select name="cate_id" id="addOrEditCate">
+							<option value="0">请选择</option>
+						</select>
+					</div>
+				</div>
+				<div class="layui-inline">
+				<label class="layui-form-label">是否置顶</label>
+					<div class="layui-input-block">
+						<input type="checkbox" name="is_top" lay-skin="switch" lay-filter="switchTest" lay-text="是|否">
+					</div>
+				</div>
+			</div>
+			<div class="layui-form-item layui-form-text">
+				<label class="layui-form-label">文章内容</label>
+				<div class="layui-input-block">
+					<textarea placeholder="请输入内容" class="layui-textarea" id="addOrEditContent" name="content"></textarea>
+				</div>
+			</div>
+			<div class="layui-form-item">
+				<div class="layui-input-block">
+				<input type="hidden" name="id" value="0">
+				<button type="submit" class="layui-btn" lay-submit="lay-submit" lay-filter="addOrEditSubmit">保存</button>
+				</div>
+			</div>
+		</form>
+	</div>
+{/block}
+{block name='main-js'}
+	<!-- <script type="text/javascript" src="/static/plugins/ckeditor/ckeditor.js"></script> -->
+	<script type="text/javascript" src="/static/plugins/Ueditor/ueditor.config.js"></script>
+	<script type="text/javascript" src="/static/plugins/Ueditor/ueditor.all.js"></script>
+	<script type="text/javascript">
+		const URL_HANDLE = 'Admin/Article/handle';
+		const ARTICLE_CATE = {:json_encode($articleCate)};
+	</script>
+	<script type="text/javascript">
+
+		const APP_INIT = {
+			layer:{},
+			elem:{
+				cate:{},
+				table:{
+					init:null,
+					where:{handle:'articleList'},
+					data:{},
+				},
+				form:{article:{handle:null}},
+				editor:null
+			},
+
+			init:function(){
+				let that = this;
+				
+				that.cateInit();
+				that.addOrEditTplInit();
+
+				layui.config({
+					base: '../static/plugins/layui/exts/'
+				}).extend({
+					cropper: 'cropper/cropper'
+				}).use(['cropper','layer','table','form'], function(){
+					that.layer.cropper = layui.cropper;
+					that.layer.layer = layui.layer;
+					that.layer.table = layui.table;
+					that.layer.form = layui.form;
+
+					that.tableInit();
+					that.articleAddOrEditSubmit();
+				});
+			},
+
+			cateInit:function(){
+				let that = this,
+					templet = new Array,
+					cateTree = APP.cateTree(ARTICLE_CATE);
+				that.elem.cate = APP.arrayKeyHandle(ARTICLE_CATE,'id');
+
+				cateTree.map(function(item){
+					let optionSet = '<option value="' + item.id + '">' + '&nbsp;&nbsp;&nbsp;&nbsp;'.repeat(item.level) + item.name_zh + '</option>';
+					templet.push(optionSet);
+				});
+
+				templet = templet.join('');
+
+				let searchFormCate = document.getElementById('searchFormCate'),
+					addOrEditCate = document.getElementById('addOrEditCate');
+				searchFormCate.innerHTML += templet;
+				addOrEditCate.innerHTML += templet;
+			},
+
+			addOrEditTplInit:function(){
+				let that = this;
+				// let configSet = {
+				// 	language:'zh',
+				// };
+				let cinfigSet = {
+					zIndex:10,
+					initialFrameWidth:'auto'
+				};
+				that.elem.editor = UE.getEditor('addOrEditContent',cinfigSet);
+
+
+				// CKEDITOR.replace('addOrEditContent');
+				// let dataGet = CKEDITOR.instances.addOrEditContent.getData();
+			},
+
+			addOrEditThumb:function(){
+
+			},
+
+			tableInit:function(){
+				let that = this,
+					urlSet = URL_HANDLE,
+					idSet = 'data-table',
+					whereSet = that.elem.table.where,
+					parseSet = function(data){},
+					doneSet = function(data){
+						let dataGet = data.data;
+						dataGet = APP.arrayKeyHandle(dataGet,'id');
+						Object.assign(that.elem.table.data,dataGet);
+
+						that.searchInit();
+					},
+					colSet = [
+						{ field:'id',title:'id值',hide:true },
+						{ type:'checkbox', unresize:true },
+						{ 
+							title:'文章标题',
+							unresize:true,
+							templet:function(data){
+								return APP.contentCut(data.title,10);
+							}
+						},
+						{
+							title:'所属分类',
+							unresize:true,
+							templet:function(data){
+								return that.elem.cate[data.parent_id]['name_zh'];
+							}
+						},
+						{
+							title:'缩略图',
+							unresize:true,
+							templet:function(data){
+								let output = '<img src="' + data.thumb + '">';
+								return output;
+							}
+						},
+						{
+							title:'上架时间',
+							unresize:true,
+							templet:function(data){
+								return APP.timeToString(data.publish_time);
+							}
+						},
+						{ field:'sort', title:'排序', unresize:true },
+						{ title:'操作', unresize:true, templet:'#tableHandleButton' },
+					];
+
+				that.elem.table.init = APP.tableSet(that.layer.table, urlSet, idSet, colSet, parseSet, doneSet,whereSet);
+			},
+
+			searchInit:function(){
+				let that = this,
+					parseSet = function(data){
+						let whereSet = Object.assign(that.elem.table.init.config.where,data.field);
+						that.elem.table.init.reload({
+							where:whereSet
+						});
+					};
+
+				APP.submitSet(that.layer.form,'searchFormSubmit',parseSet);
+			},
+
+			tableResetEvent:function(){
+				let that = this;
+				that.elem.table.reload({
+					where:{
+						handle:that.elem.table.init.config.where.handle
+					}
+				});
+			},
+
+			addEvent:function(){
+				let that = this;
+					dataSet = {
+						title:'',
+						cate_id:'',
+						sort:99,
+						click:0,
+					};
+				that.elem.form.article.handle = 'articleAdd';
+				that.layer.form.val('addOrEditForm',dataSet);
+				APP.catchSet(that.layer.layer,'addOrEditTpl',['98%','98%']);
+			},
+
+			editEvent:function(target){
+				let that = this,
+					idGet = target.getAttribute('data-id'),
+					dataSet = that.elem.table.data[idGet];
+				that.elem.form.article.handle = 'articleEdit';
+				that.layer.form.val('addOrEditForm',dataSet);
+				APP.catchSet(that.layer.layer,'addOrEditTpl');
+			},
+
+			articleAddOrEditSubmit:function(){
+				let that = this,
+					parseSet = function(data){
+						let dataGet = data.field,
+							callbackSet = function(res){
+								if(res.status){
+									that.elem.table.init.reload();
+								}
+								APP.alertSet(that.layer.layer,res.msg,{icon:res.status});
+							};
+						dataGet['handle'] = that.elem.form.article.handle;
+
+						APP.requestSet(URL_HANDLE,'POST',callbackSet,dataGet);
+					};
+
+				APP.submitSet(that.layer.form,'addOrEditSubmit',parseSet);
+			},
+
+			deleteEvent:function(target){
+				let that = this,
+					idGet = target.getAttribute('data-id'),
+					yesSet = function(){
+						let dataRequest = {
+								handle:'articleDelete',
+								id:idGet,
+							},
+							callbackSet = function(res){
+								if(res.status){
+									that.elem.table.init.reload();
+								}
+								APP.alertSet(that.layer.layer,res.msg,{icon:res.status});
+							};
+						APP.requestSet(URL_HANDLE,'POST',callbackSet,dataRequest);
+					};
+				APP.confirmSet(that.layer.layer,yesSet,'','确定要删除该文章?');
+			}
+		}
+
+	APP.initSet(function(){
+		APP_INIT.init();
+	});
+	</script>
+{/block}

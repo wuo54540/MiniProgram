@@ -1,0 +1,216 @@
+{extend name="public/layout"}
+{block name="main-css"}
+	<style type="text/css">
+		#cateAddOrEditTpl{
+			padding:8px 12px;
+		}
+		.layui-layer.layui-layer-page>.layui-layer-content{
+			overflow: visible !important;
+		}
+		#cateAddOrEditTpl dl.layui-anim.layui-anim-upbit{
+			z-index: 9999;
+		}
+	</style>
+{/block}
+{block name='main-body'}
+	<div class="main-body">
+		<div>
+			<button class="layui-btn layui-btn-primary" onclick="APP_INIT.addEvent()">添加分类</button>
+		</div>
+		<div>
+			<table class="layui-table" id="data-table"></table>
+		</div>
+	</div>
+
+	<script type="text/html" id="tableHandleButton">
+		<button class="layui-btn layui-btn-xs layui-btn-primary" onclick="APP_INIT.editEvent(this)" data-id="{{ d.id }}">编辑</button>
+		<button class="layui-btn layui-btn-xs layui-btn-danger" onclick="APP_INIT.deleteEvent(this)" data-id="{{ d.id }}">删除</button>
+	</script>
+
+	<div id="cateAddOrEditTpl" class="hide">
+		<form class="layui-form" lay-filter="cateAddOrEdit">
+			<div class="layui-form-item">
+				<div class="layui-inline">
+					<label class="layui-form-label">上级分类</label>
+					<div class="layui-input-inline">
+						<select name="parent_id" id="cateAddOrEdit-parentId">
+							<option value="0">顶级</option>
+						</select>
+					</div>
+				</div>
+			</div>
+			<div class="layui-form-item">
+				<div class="layui-inline">
+					<label class="layui-form-label">分类名称</label>
+					<div class="layui-input-inline">
+						<input type="text" name="name_zh" autocomplete="off" class="layui-input" placeholder="请填写分类名称">
+					</div>
+				</div>
+			</div>
+			<div class="layui-form-item">
+				<div class="layui-inline">
+					<label class="layui-form-label">排序</label>
+					<div class="layui-input-inline">
+						<input type="number" name="sort" autocomplete="off" class="layui-input" placeholder="99" min="1" max="99" value="99">
+					</div>
+				</div>
+			</div>
+			<div class="layui-form-item">
+				<div class="layui-input-block">
+					<input type="hidden" name="id" value="">
+					<button type="submit" class="layui-btn" lay-submit="" lay-filter="cateAddOrEditSubmit">保存</button>
+				</div>
+			</div>
+		</form>
+	</div>
+{/block}
+{block name='main-js'}
+	<script type="text/javascript">
+		const URL_HANDLE = 'Admin/Article/handle';
+	</script>
+	<script type="text/javascript">
+		const APP_INIT = {
+			layer:{},
+			elem:{
+				table:{
+					init:null
+				},
+				form:{
+					cate:{
+						handle:null
+					},
+				},
+			},
+			init:function(){
+				let that = this;
+				layui.use(['table','form','layer'],function(){
+					that.layer.table = layui.table;
+					that.layer.layer = layui.layer;
+					that.layer.form = layui.form;
+
+					that.tableInit();
+					that.cateAddOrEditSubmitEvent();
+				});
+			},
+
+			tableInit:function(){
+				let that = this,
+					urlSet = URL_HANDLE,
+					idSet = 'data-table',
+					isPage = false,
+					whereSet = {
+						'handle':'articleCateList',
+					},
+					doneSet = function(){
+						let selectAdd = document.getElementById('cateAddOrEdit-parentId'),
+							tplResult = ['<option value="0" selected="selected">顶级</option>'];
+						that.elem.table.tree.map(function(item){
+							let optionSet = '<option value="' + item.id + '">' + '&nbsp;&nbsp;&nbsp;&nbsp;'.repeat(item.level) + item.name_zh + '</option>';
+							tplResult.push(optionSet);
+						});
+						selectAdd.innerHTML = tplResult.join('');
+					},
+					parseSet = function(res){
+						that.elem.table.orgin = APP.arrayKeyHandle(res.data,'id');
+						that.elem.table.tree = APP.cateTree(res.data);
+
+						return {
+							'code':res.code,
+							'msg':res.msg,
+							'count':res.count,
+							'data':APP.cateTree(res.data)
+						};
+					},
+					colSet = [
+						{ field:'id',title:'id值',hide:true },
+						{ type:'checkbox', unresize:true },
+						{ 
+							field:'name_zh', 
+							title:'分类名称',
+							unresize:true,
+							templet:function(data){
+								let output = '';
+								if(data.level>0){
+									output = '&nbsp;&nbsp;&nbsp;&nbsp;'.repeat(data.level) + '└--';
+								};
+								output += data.name_zh;
+								return output;
+							}
+						},
+						{ field:'sort', title:'排序', unresize:true },
+						{ title:'操作', unresize:true, templet:'#tableHandleButton' },
+					];
+				that.elem.table.init = APP.tableSet(that.layer.table, urlSet, idSet, colSet, parseSet, doneSet,whereSet, isPage);
+			},
+
+			addEvent:function(){
+				let that = this;
+				that.elem.form.cate.handle = 'articleCateAdd';
+				that.layer.form.val('cateAddOrEdit',{
+					'parent_id':0,
+					'name_zh':'',
+					'sort':99
+				});
+				APP.catchSet(that.layer.layer,'cateAddOrEditTpl',['350px','250px']);
+			},
+
+			editEvent:function(target){
+				let that = this;
+					idGet = target.getAttribute('data-id'),
+					dataGet = that.elem.table.orgin[idGet],
+					dataSet = {
+						'parent_id':dataGet.parent_id,
+						'name_zh':dataGet.name_zh,
+						'sort':dataGet.sort,
+						'id':idGet
+					};
+				that.elem.form.cate.handle = 'articleCateEdit';
+				that.layer.form.val('cateAddOrEdit',dataSet);
+				APP.catchSet(that.layer.layer,'cateAddOrEditTpl',['350px','250px']);
+			},
+
+			cateAddOrEditSubmitEvent:function(){
+				let that = this;
+
+				let parseSet = function(data){
+					let dataGet = data.field,
+						callbackSet = function(res){
+							if(res.status){
+								that.elem.table.init.reload();
+							}
+							APP.alertSet(that.layer.layer,res.msg,{icon:res.status});
+						};
+					dataGet['handle'] = that.elem.form.cate.handle;
+
+					APP.requestSet(URL_HANDLE,'POST',callbackSet,dataGet);
+				}
+
+				APP.submitSet(that.layer.form,'cateAddOrEditSubmit',parseSet);
+			},
+
+			deleteEvent:function(target){
+				let that = this,
+					idGet = target.getAttribute('data-id'),
+					yesSet = function(){
+						let dataRequest = {
+								handle:'articleCateDelete',
+								id:idGet,
+							},
+							callbackSet = function(res){
+								if(res.status){
+									that.elem.table.init.reload();
+								}
+								APP.alertSet(that.layer.layer,res.msg,{icon:res.status});
+							};
+						APP.requestSet(URL_HANDLE,'POST',callbackSet,dataRequest);
+					};
+				APP.confirmSet(that.layer.layer,yesSet,'','确定要删除该分类?');
+			},
+		}
+
+		APP.initSet(function(){
+			APP_INIT.init();
+		});
+
+	</script>
+{/block}
